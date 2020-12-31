@@ -7,13 +7,14 @@ Please see the license file that was included with this software.
 """
 
 import os
+from pathlib import Path
 import glob
 from dotenv import load_dotenv
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
 import logging
 
-from player import PlayerError
+from player import PlayerError, PlayerCharacter
 from group import Group
 from dice import (group_roll, check_roll, group_check_roll, Roll, diceLookup)
 
@@ -22,6 +23,11 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 load_dotenv()
 TOKEN = os.getenv("TG-TOKEN")
+CHARFOLDER = os.getenv("CHARACTER-FOLDER")
+if CHARFOLDER == None:
+    CHARFOLDER = Path('characters/')
+else:
+    CHARFOLDER = Path(CHARFOLDER)
 
 updater = Updater(TOKEN, use_context=True)
 dispatcher = updater.dispatcher
@@ -73,18 +79,21 @@ def stop(update, context) -> None:
 
 def load_player(update, context) -> None:
     arg_check(context, 1)
-    for player in context.args:
+    for file in context.args:
         try: #Do this inside the loop so that if we fail we can continue to try loading other players.
-            newPlayer = context.bot_data['group'].add_player(player)
+            file = CHARFOLDER / file
+            newPlayer = PlayerCharacter(file)
+            context.bot_data['group'].add_player(newPlayer)
             context.bot.send_message(chat_id=update.effective_chat.id, text=f"Loaded player {newPlayer.name}")
         except PlayerError as err:
             context.bot.send_message(chat_id=update.effective_chat.id, text=str(err))
 
 def load_all(update, context) -> None:
-    for file in glob.glob("*.pdf"):
+    for file in CHARFOLDER.glob("*.pdf"):
         try:
-            context.bot.send_message(chat_id=update.effective_chat.id, text=f"Loading player from: {file}...")
-            context.bot_data['group'].add_player(file)
+            newPlayer = PlayerCharacter(file)
+            context.bot_data['group'].add_player(newPlayer)
+            context.bot.send_message(chat_id=update.effective_chat.id, text=f"Loaded player {newPlayer.name} from {file}...")
         except PlayerError as err:
             context.bot.send_message(chat_id=update.effective_chat.id, text=str(err))
 

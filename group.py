@@ -24,18 +24,13 @@ class Group(dict):
     def __empty_check__(self) -> None:
         if len(self.__players__) < 1:
             raise PlayerError("No players loaded.")
-    def add_player(self, name: str) -> PlayerCharacter:
+    def add_player(self, player: PlayerCharacter) -> None:
         """
-        Create a new player and add it to the group. The name given is the same name
-        passed to PlayerCharacter.__init__ to load the file.
+        Add a new player to the group, after making sure that it's not already loaded.
         """
-        name = name.lower()
-        #If we were given a string that has '.pdf' at the end remove it for now.
-        name = name.removesuffix('.pdf')
-        if name in self.__players__:
+        if player.name in self.__players__:
             raise PlayerError(f"Player {name} is already loaded. Skipping...")
-        self.__players__[name] = PlayerCharacter(f"{name}.pdf")
-        return self.__players__[name] #Return name of newly created player.
+        self.__players__[player.name] = player
     def remove_player(self, name: str) -> None:
         """
         Removes the player from self.__players__ while doing the needed error checking.

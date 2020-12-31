@@ -211,8 +211,7 @@ class PlayerCharacter(object):
         """
         if fileName == None:
             fileName = self.fileName
-        else:
-            self.fileName #A new filename was given so reload the player from a new file
+        #Otherwise new filename was given so reload the player from a new file
         try:
             file = open(fileName, "rb")
             self.pdf = PdfFileReader(file)
@@ -224,7 +223,8 @@ class PlayerCharacter(object):
             data = self.pdf.getFields()
             #Not everyone has a single name like Moddona...
             self.fullName = data['Name']['/V']
-            self.name = data['Name']['/V'].split()[0]
+            name = data['Name']['/V'].split()[0]
+            self.name = name.lower()
             self.playerName = data['Player Name']['/V']
             self.career = data['Career']['/V']
 
