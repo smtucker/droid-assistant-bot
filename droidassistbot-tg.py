@@ -8,7 +8,6 @@ Please see the license file that was included with this software.
 
 import os
 from pathlib import Path
-import glob
 from dotenv import load_dotenv
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
@@ -44,7 +43,7 @@ commandDescriptions = {
     "players" : "Usage: '/players'\nList all the currently loaded players.",
     "start" : "Usage: '/start'\nPrepares a new group for a new session. Clears any loaded players if any.",
     "stop" : "Usage: '/stop'\nClears the group and unloads any loaded players.",
-    "load" : "Usage: '/load [name]'\nLoads a player from PDF file with [name].pdf.",
+    "load" : "Usage: '/load [file]'\nLoads a player from PDF file named [file].",
     "loadall" : "Usage '/loadall'\nScans the set player sheet folder for PDFs and attempt to load them all into the group.",
     "update" : "Usage '/update [name]'\nReloads the player matching the given name. Attemps to load the same file from before once again.",
     "modify" : "Usage '/modify [name] [stat] [modifier]\n Modify player's stat by provided value, a positive or negative number",
@@ -114,7 +113,7 @@ def update_player(update, context) -> None:
 
 def list_players(update, context) -> None:
     playerList = context.bot_data['group'].get_loaded_players()
-    message = 'Players currently loaded: ' + ', '.join(playerList)
+    message = f"{len(playerList)} Players currently loaded: " + ', '.join(playerList)
     context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 def stat(update, context) -> None:
@@ -245,6 +244,35 @@ def talent(update, context) -> None:
         message = player.get_talents(int(context.args[0]))
     context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
+def destiny(update, context) -> None:
+    arg_check(context, 1)
+    if context.args[0].lower() == 'roll':
+        playerList = context.bot_data['group'].get_loaded_players()
+        playerCount = len(playerList)
+        dice = 'f' * playerCount
+        roll = Roll(dice)
+        context.bot_data['group'].destiny.clear()
+        context.bot_data['group'].destiny.addLight(roll.tally['Lightside'])
+        context.bot_data['group'].destiny.addDark(roll.tally['Darkside'])
+        message = f"Rolled force die for {playerCount} players:\n"
+        message += context.bot_data['group'].destiny.getPoolDesc()
+        context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    elif context.args[0].lower() == 'list':
+        message = context.bot_data['group'].destiny.getPoolDesc()
+        #TODO: Show tokens used
+        context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    elif context.args[0].lower() == 'use':
+        arg_check(context, 2)
+        if context.args[1].lower() == 'light':
+            message = context.bot_data['group'].destiny.useLightside()
+            context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+        if context.args[1].lower() == 'dark':
+            message = context.bot_data['group'].destiny.useDarkside()
+            context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Unknown argument. See /help destiny")
+
+
 load_handler = CommandHandler('load', load_player)
 loadall_handler = CommandHandler('loadall', load_all)
 unload_handler = CommandHandler('unload', unload_player)
@@ -265,6 +293,7 @@ modify_handler = CommandHandler('modify', modify)
 modify_all_handler = CommandHandler('modifyall', modify_all)
 changelog_handler = CommandHandler('changelog', changelog)
 talent_handler = CommandHandler('talent', talent)
+destiny_handler = CommandHandler('destiny', destiny)
 dispatcher.add_handler(load_handler)
 dispatcher.add_handler(loadall_handler)
 dispatcher.add_handler(unload_handler)
@@ -285,6 +314,7 @@ dispatcher.add_handler(modify_handler)
 dispatcher.add_handler(modify_all_handler)
 dispatcher.add_handler(changelog_handler)
 dispatcher.add_handler(talent_handler)
+dispatcher.add_handler(destiny_handler)
 
 dispatcher.add_error_handler(error_callback)
 

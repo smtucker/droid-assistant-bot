@@ -8,6 +8,59 @@ Please see the license file that was included with this software.
 
 from player import PlayerError, PlayerCharacter, CHARS, SKILLS
 
+class TokenPool(list):
+    """
+    This class holds the destiny pool for the group. It inherits a list, becomes a list of strs.
+    With 'Light' and 'Dark' respectively. We can thus quickly use len() and
+    sum() to get info and make decisions, and list's builtin count() to get a tally.
+    """
+    def __init__(self, lightside = 0, darkside = 0) -> None:
+        self.lightUsed = 0
+        self.darkUsed = 0
+        pool = list()
+        pool += ['Light'] * lightside
+        pool += ['Dark'] * darkside
+        super().__init__(pool)
+
+    def clear(self):
+        """
+        Intercept the call to list.clear() so we can also clear our custom fields.
+        """
+        self.lightUsed = 0
+        self.darkUsed = 0
+        super().clear()
+
+    def getPoolDesc(self):
+        self.sort() #Sort them all so they are in order
+        self.reverse() #Then reverse so lightside is first
+        message = f"[ {'-'.join(self)} ]"
+        return message
+
+    def useLightside(self):
+        if self.count('Light') > 0:
+            self.remove('Light')
+            self.append('Dark')
+            self.lightUsed +=1
+            return f"Used a lightside token. There are {self.count('Light')} remaining."
+        else:
+            return "No lightside tokens available to be used."
+
+    def useDarkside(self):
+        if self.count('Dark') > 0:
+            self.remove('Dark')
+            self.append('Light')
+            return f"Used a darkside token. There are {self.count('Dark')} remaining."
+        else:
+            return "No darkside tokens available to be used."
+
+    def addLight(self, count: int) -> None:
+        newLight = ['Light'] * count
+        self += newLight
+
+    def addDark(self, count: int) -> None:
+        newDark = ['Dark'] * count
+        self += newDark
+
 class Group(dict):
     """
     Class to hold the current players and relevant group data. self.__players__ is a dict with
@@ -19,7 +72,7 @@ class Group(dict):
     but later on it will be good to keep it all together.
     """
     def __init__(self) -> None:
-        self.destiny = [0,0] #Lightside, darkside
+        self.destiny = TokenPool()
         self.__players__ = {}
     def __empty_check__(self) -> None:
         if len(self.__players__) < 1:
