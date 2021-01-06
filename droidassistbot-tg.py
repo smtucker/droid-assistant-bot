@@ -48,7 +48,10 @@ commandDescriptions = {
     "update" : "Usage '/update [name]'\nReloads the player matching the given name. Attemps to load the same file from before once again.",
     "modify" : "Usage '/modify [name] [stat] [modifier]\n Modify player's stat by provided value, a positive or negative number",
     "changelog" : "Usage '/changelog [name]\nShows the log of unsaved changes made to that player. Starting from most recent on.",
-    "talent" : "Usage '/talent [name] (selection #, or 'all')'\nIf only the name is given it lists the talents for specified player by number. Otherwise grabs the details of the selected talent by number, or shows them 'all' in detail."
+    "talent" : "Usage '/talent [name] (selection #, or 'all')'\nIf only the name is given it lists the talents for specified player by number. Otherwise grabs the details of the selected talent by number, or shows them 'all' in detail.",
+    "destiny" : "Usage '/destiny [arg] (arg2)\nPossible arguments combos: 'list', shows current destiny pool. 'roll', will clear the pool and roll for a new one, one dice per loaded player in the group. 'use light', or 'use dark' use of the tokens if available.",
+    "save" : "Usage '/save [player name]'\nSave the selected player to pdf. Uses the set character folder, or defaults to 'characters/'. Saves the old file as '[player name].bkp'",
+    "saveall" : "Usage '/saveall'\nPerforms /save on every loaded player in the group."
 }
 
 def error_callback(update, context):
@@ -272,6 +275,26 @@ def destiny(update, context) -> None:
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Unknown argument. See /help destiny")
 
+def save(update, context) -> None:
+    arg_check(context, 1)
+    playerName = context.args[0].lower()
+    player = context.bot_data['group'].get_player(playerName)
+    outFile = player.save()
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Saved file '{outFile}'")
+
+def save_all(update, context) -> None:
+    playerNames = context.bot_data['group'].get_loaded_players()
+    message = 'Saved to the following files:\n'
+    for name in playerNames:
+        try:
+            player = context.bot_data['group'].get_player(name)
+            result = player.save()
+            message += result
+            message += '\n'
+        except PlayerError as err:
+                context.bot.send_message(chat_id=update.effective_chat.id, text=str(err))
+
+    context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 load_handler = CommandHandler('load', load_player)
 loadall_handler = CommandHandler('loadall', load_all)
@@ -294,6 +317,8 @@ modify_all_handler = CommandHandler('modifyall', modify_all)
 changelog_handler = CommandHandler('changelog', changelog)
 talent_handler = CommandHandler('talent', talent)
 destiny_handler = CommandHandler('destiny', destiny)
+save_handler = CommandHandler('save', save)
+save_all_handler = CommandHandler('saveall', save_all)
 dispatcher.add_handler(load_handler)
 dispatcher.add_handler(loadall_handler)
 dispatcher.add_handler(unload_handler)
@@ -315,6 +340,8 @@ dispatcher.add_handler(modify_all_handler)
 dispatcher.add_handler(changelog_handler)
 dispatcher.add_handler(talent_handler)
 dispatcher.add_handler(destiny_handler)
+dispatcher.add_handler(save_handler)
+dispatcher.add_handler(save_all_handler)
 
 dispatcher.add_error_handler(error_callback)
 

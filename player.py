@@ -8,9 +8,10 @@ Please see the license file that was included with this software.
 
 from os import name
 from typing import NewType
-from PyPDF2 import PdfFileReader
-from PyPDF2.generic import StreamObject
+from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2.generic import StreamObject, BooleanObject, NameObject, IndirectObject
 from time import strftime, localtime
+from pathlib import Path
 
 #Create custom Exceptions so we can handle errors without catching them all.
 class Error(Exception):
@@ -214,13 +215,13 @@ class PlayerCharacter(object):
         #Otherwise new filename was given so reload the player from a new file
         try:
             file = open(fileName, "rb")
-            self.pdf = PdfFileReader(file)
+            pdf = PdfFileReader(file)
         except FileNotFoundError:
             raise PlayerError(f"Can't find file: {fileName}")
         try:
             #Load the data. This returns a dict of dicts.
             #   See fields.txt for example data.
-            data = self.pdf.getFields()
+            data = pdf.getFields()
             #Not everyone has a single name like Moddona...
             self.fullName = data['Name']['/V']
             name = data['Name']['/V'].split()[0]
@@ -247,11 +248,74 @@ class PlayerCharacter(object):
             raise PlayerError(f"Error loading general data in: {fileName}")
         self.__load_chars__(data)
         self.__load_dynams__(data)
-        self.__load_abilities__(data, self.pdf)
+        self.__load_abilities__(data, pdf)
         self.__load_talents__(data)
+
         file.close()
 
         self.changeLog = list()
+
+    def save(self) -> str:
+        """
+        
+        """
+
+        def set_need_appearances_writer(writer: PdfFileWriter):
+            # See 12.7.2 and 7.7.2 for more information: http://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/PDF32000_2008.pdf
+            try:
+                catalog = writer._root_object
+                # get the AcroForm tree
+                if "/AcroForm" not in catalog:
+                    writer._root_object.update({NameObject("/AcroForm"): IndirectObject(len(writer._objects), 0, writer)})
+                need_appearances = NameObject("/NeedAppearances")
+                writer._root_object["/AcroForm"][need_appearances] = BooleanObject(True)
+                # del writer._root_object["/AcroForm"]['NeedAppearances']
+                return writer
+            except Exception as e:
+                print('set_need_appearances_writer() catch : ', repr(e))
+                return writer
+
+        try:
+            oldFile = open(self.fileName, "rb")
+        except:
+            raise PlayerError(f"Error: Cannot open {self.fileName}")
+
+        newPath = self.fileName.parent
+        tmpPath = newPath / f"{self.name}.tmp"
+        newPath = newPath / f"{self.name}.pdf"
+        try:
+            newFile = open (tmpPath, "wb")
+        except:
+            raise PlayerError(f"Error: Cannot open {tmpPath} for output")
+
+        inPdf = PdfFileReader(oldFile)
+        outPdf = PdfFileWriter()
+
+        trailer = inPdf.trailer["/Root"]["/AcroForm"]
+        outPdf._root_object.update({NameObject('/AcroForm'): trailer})
+
+        outPdf.addPage(inPdf.getPage(0))
+        #Does this really point to the inPdf?
+        outPdf.updatePageFormFieldValues(inPdf.getPage(0), {'ST Current' : str(self.dynamics['strain'][1])})
+        outPdf.updatePageFormFieldValues(inPdf.getPage(0), {'WT Current' : str(self.dynamics['wounds'][1])})
+        outPdf.updatePageFormFieldValues(inPdf.getPage(0), {'Total XP' : str(self.totalXp)})
+        outPdf.updatePageFormFieldValues(inPdf.getPage(0), {'Available XP' : str(self.availableXp)})
+        outPdf.addPage(inPdf.getPage(1))
+        outPdf.updatePageFormFieldValues(inPdf.getPage(1), {'Total Duty' : str(self.general['duty'])})
+        outPdf.addPage(inPdf.getPage(2))
+        outPdf.addPage(inPdf.getPage(3))
+        outPdf.updatePageFormFieldValues(inPdf.getPage(3), {'Personal Finances Available Credits' : str(self.general['credits'])})
+        set_need_appearances_writer(outPdf)
+        outPdf.write(newFile)
+        newFile.close()
+        oldFile.close()
+
+        #Move original to backup, using the newfile name both with '.bkp' extension
+        self.fileName.replace(newPath.with_suffix('.bkp'))
+        #Change file extension of new temp file.
+        tmpPath.replace(newPath)
+
+        return str(newPath)
     
     def lookup_stat(self, name: str) -> str:
         """
