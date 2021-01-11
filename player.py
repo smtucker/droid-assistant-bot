@@ -215,10 +215,10 @@ class PlayerCharacter(object):
         #Otherwise new filename was given so reload the player from a new file
         try:
             file = open(fileName, "rb")
-            pdf = PdfFileReader(file)
         except FileNotFoundError:
             raise PlayerError(f"Can't find file: {fileName}")
         try:
+            pdf = PdfFileReader(file)
             #Load the data. This returns a dict of dicts.
             #   See fields.txt for example data.
             data = pdf.getFields()
@@ -247,6 +247,9 @@ class PlayerCharacter(object):
             
         except KeyError:
             raise PlayerError(f"Error loading general data in: {fileName}")
+        finally:
+            file.close
+
         self.__load_chars__(data)
         self.__load_dynams__(data)
         self.__load_abilities__(data, pdf)
@@ -287,6 +290,7 @@ class PlayerCharacter(object):
         try:
             newFile = open (tmpPath, "wb")
         except:
+            oldFile.close()
             raise PlayerError(f"Error: Cannot open {tmpPath} for output")
 
         inPdf = PdfFileReader(oldFile)
