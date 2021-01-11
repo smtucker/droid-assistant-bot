@@ -226,14 +226,15 @@ class PlayerCharacter(object):
             self.fullName = data['Name']['/V']
             name = data['Name']['/V'].split()[0]
             self.name = name.lower()
-            self.playerName = data['Player Name']['/V']
-            self.career = data['Career']['/V']
+            #TODO: Load the following safely...
+            #self.playerName = data['Player Name']['/V']
+            #self.career = data['Career']['/V']
 
             #TODO: Make this not suck. Assumes everyone uses proper punctuation.
             #Use get incase the overflow lines are blank so we can default without a KeyError
-            self.specializations = data['Specializations']['/V'].split(", ") + \
-                data['Specializations2'].get('/V', '').split(", ") + \
-                data['Specializations3'].get('/V', '').split(", ")
+            #self.specializations = data['Specializations']['/V'].split(", ") + \
+            #    data['Specializations2'].get('/V', '').split(", ") + \
+            #    data['Specializations3'].get('/V', '').split(", ")
 
             #Save basic number stats in a dict named general. These can be found using
             #   lookup_stat and change, so only include viable stats.
@@ -314,6 +315,8 @@ class PlayerCharacter(object):
         self.fileName.replace(newPath.with_suffix('.bkp'))
         #Change file extension of new temp file.
         tmpPath.replace(newPath)
+
+        self.changelog = list()
 
         return str(newPath)
     
