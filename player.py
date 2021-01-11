@@ -337,7 +337,7 @@ class PlayerCharacter(object):
         if name in self.general.keys():
             stat = self.general[name]
             return f"{self.name}'s {name} is: {stat!s}"
-        if name == 'xp':
+        if name == 'xp' or name == 'exp':
             return f"{self.name}'s Available XP is {self.availableXp}, with a total XP of {self.totalXp}"
         #If we got this far the stat it was asked us to find does not exist.
         raise PlayerError(f"Unable to find stat named {name!r}")
@@ -414,7 +414,7 @@ class PlayerCharacter(object):
             record = self.__getChangedStr__(item, value, oldValue, self.general[item])
             self.changeLog.insert(0, timestamp + record)
             return record
-        if item == 'xp':
+        if item == 'xp' or item == 'exp':
             oldAvailXp = self.availableXp
             oldTotalXp = self.totalXp
             self.totalXp += value
