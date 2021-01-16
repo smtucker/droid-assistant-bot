@@ -50,7 +50,7 @@ commandDescriptions = {
     "modifyall" : "Usage '/modify [name] [stat] [modifier]\n Modify player's stat by provided value, a positive or negative number",
     "changelog" : "Usage '/changelog [name]\nShows the log of unsaved changes made to that player. Starting from most recent on.",
     "talent" : "Usage '/talent [name] (selection #, or 'all')'\nIf only the name is given it lists the talents for specified player by number. Otherwise grabs the details of the selected talent by number, or shows them 'all' in detail.",
-    "destiny" : "Usage '/destiny [arg] (arg2)\nPossible arguments combos: 'list', shows current destiny pool. 'roll', will clear the pool and roll for a new one, one dice per loaded player in the group. 'use light', or 'use dark' use of the tokens if available.",
+    "destiny" : "Usage '/destiny [arg] (arg2)\nPossible arguments combos: 'list', shows current destiny pool. 'set', followed by a string of 'l' and 'd' for each respective token, will manually set the force dice pool. 'roll', will clear the pool and roll for a new one, one dice per loaded player in the group. 'use light', or 'use dark' use of the tokens if available.",
     "save" : "Usage '/save [player name]'\nSave the selected player to pdf. Uses the set character folder, or defaults to 'characters/'. Saves the old file as '[player name].bkp'",
     "saveall" : "Usage '/saveall'\nPerforms /save on every loaded player in the group."
 }
@@ -273,6 +273,12 @@ def destiny(update, context) -> None:
         if context.args[1].lower() == 'dark':
             message = context.bot_data['group'].destiny.useDarkside()
             context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+    elif context.args[0].lower() == 'set':
+        arg_check(context, 2)
+        context.bot_data['group'].destiny.define(context.args[1])
+        message = "Changed force dice pool...\n"
+        message += context.bot_data['group'].destiny.getPoolDesc()
+        context.bot.send_message(chat_id=update.effective_chat.id, text=message)
     else:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Unknown argument. See /help destiny")
 

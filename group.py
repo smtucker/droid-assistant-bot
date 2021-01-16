@@ -22,6 +22,12 @@ class TokenPool(list):
         pool += ['Dark'] * darkside
         super().__init__(pool)
 
+    def define(self, points: str) -> None:
+        self.clear()
+        points = points.lower()
+        self.extend(['Light'] * points.count('l'))
+        self.extend(['Dark'] * points.count('d'))
+
     def clear(self):
         """
         Intercept the call to list.clear() so we can also clear our custom fields.
@@ -82,7 +88,7 @@ class Group(dict):
         Add a new player to the group, after making sure that it's not already loaded.
         """
         if player.name in self.__players__:
-            raise PlayerError(f"Player {name} is already loaded. Skipping...")
+            raise PlayerError(f"Player {player.name} is already loaded. Skipping...")
         self.__players__[player.name] = player
     def remove_player(self, name: str) -> None:
         """
